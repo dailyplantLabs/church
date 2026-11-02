@@ -1,175 +1,137 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#25274D" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="은혜와진리교회" />
-  <title>은혜와진리교회 커뮤니티</title>
-  <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="icon" type="image/svg+xml" href="./icon.svg" />
-  <link rel="apple-touch-icon" href="./icon.svg" />
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif;
-      background: #25274D;
-      color: #ffffff;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-    .card {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      border-radius: 20px;
-      padding: 36px 28px;
-      max-width: 380px;
-      width: 100%;
-      text-align: center;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
-    }
-    .logo {
-      width: 64px;
-      height: 64px;
-      margin: 0 auto 18px;
-      background: #ffffff;
-      color: #25274D;
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 30px;
-      font-weight: 800;
-    }
-    h1 {
-      font-size: 20px;
-      font-weight: 700;
-      margin-bottom: 8px;
-      letter-spacing: -0.3px;
-    }
-    p {
-      font-size: 14px;
-      color: #cbd5e1;
-      line-height: 1.5;
-      margin-bottom: 22px;
-    }
-    .spinner {
-      width: 36px;
-      height: 36px;
-      border: 3px solid rgba(255, 255, 255, 0.2);
-      border-top-color: #34d399;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 0 auto 16px;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    .btn {
-      display: none;
-      width: 100%;
-      padding: 13px 16px;
-      background: #34d399;
-      color: #064e3b;
-      font-weight: 700;
-      font-size: 14px;
-      border-radius: 12px;
-      text-decoration: none;
-      border: none;
-      cursor: pointer;
-      margin-top: 8px;
-    }
-    .sub-note {
-      font-size: 12px;
-      color: #94a3b8;
-      margin-top: 14px;
-    }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="logo">✝</div>
-    <h1>은혜와진리교회 커뮤니티</h1>
-    <div id="spinner" class="spinner"></div>
-    <p id="statusText">교회 서버로 자동 연결하고 있습니다...</p>
-    <a id="manualLink" class="btn" href="#">커뮤니티 바로 입장하기</a>
-    <button id="retryBtn" class="btn" onclick="connectServer()">다시 시도</button>
-    <div class="sub-note">이 주소를 즐겨찾기 또는 홈 화면에 추가해 두시면<br/>서버 주소가 바뀌어도 항상 자동 연결됩니다.</div>
-  </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="은혜와진리교회" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <title>은혜와진리교회</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html, body {
+        width: 100%;
+        height: 100%;
+        background-color: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif;
+      }
+      .splash-wrap {
+        display: flex;
+        min-height: 100dvh;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #ffffff;
+        padding: 24px;
+      }
+      .emblem {
+        width: 112px;
+        height: 112px;
+        object-fit: contain;
+        user-select: none;
+        -webkit-user-drag: none;
+        animation: fadeIn 0.35s ease-out;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.96); }
+        to { opacity: 1; transform: scale(1); }
+      }
+      .error-box {
+        display: none;
+        margin-top: 24px;
+        text-align: center;
+      }
+      .error-text {
+        font-size: 14px;
+        color: #57534e;
+        margin-bottom: 14px;
+        line-height: 1.5;
+      }
+      .retry-btn {
+        padding: 10px 22px;
+        border-radius: 9999px;
+        border: 1px solid #d6d3d1;
+        background: #ffffff;
+        color: #25274D;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="splash-wrap">
+      <img src="./logo-emblem.png" alt="은혜와진리교회" class="emblem" draggable="false" />
+      <div id="errorBox" class="error-box">
+        <p class="error-text">교회 서버에 연결하지 못했습니다.<br />잠시 후 다시 시도해 주세요.</p>
+        <button class="retry-btn" onclick="connectServer()">다시 시도</button>
+      </div>
+    </div>
 
-  <script>
-    const GIST_ID = "504fbba58649ceaaefddc468b28ea259";
-    const GIST_API = "https://api.github.com/gists/" + GIST_ID;
-    const GIST_RAW = "https://gist.githubusercontent.com/dailyplantLabs/" + GIST_ID + "/raw/public-url.txt";
+    <script>
+      const GIST_ID = "504fbba58649ceaaefddc468b28ea259";
+      const GIST_API = "https://api.github.com/gists/" + GIST_ID;
+      const GIST_RAW = "https://gist.githubusercontent.com/dailyplantLabs/" + GIST_ID + "/raw/public-url.txt";
 
-    async function fetchLatestUrl() {
-      // 1순위: 실시간 반영되는 GitHub Gist API 조회
-      try {
-        const res = await fetch(GIST_API + "?t=" + Date.now(), { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.files && data.files["public-url.txt"] && data.files["public-url.txt"].content) {
-            const url = data.files["public-url.txt"].content.trim();
-            if (url.startsWith("https://")) return url;
+      async function fetchLatestUrl() {
+        try {
+          const res = await fetch(GIST_API + "?t=" + Date.now(), { cache: "no-store" });
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.files && data.files["public-url.txt"] && data.files["public-url.txt"].content) {
+              const url = data.files["public-url.txt"].content.trim();
+              if (url.startsWith("https://")) return url;
+            }
           }
-        }
-      } catch (e) {}
+        } catch (e) {}
 
-      // 2순위: API 제한 시 Gist Raw URL 조회
-      try {
-        const res2 = await fetch(GIST_RAW + "?t=" + Date.now(), { cache: "no-store" });
-        if (res2.ok) {
-          const text = (await res2.text()).trim();
-          if (text.startsWith("https://")) return text;
-        }
-      } catch (e) {}
+        try {
+          const res2 = await fetch(GIST_RAW + "?t=" + Date.now(), { cache: "no-store" });
+          if (res2.ok) {
+            const text = (await res2.text()).trim();
+            if (text.startsWith("https://")) return text;
+          }
+        } catch (e) {}
 
-      // 3순위: 동일 저장소의 public-url.txt 조회
-      try {
-        const res3 = await fetch("./public-url.txt?t=" + Date.now(), { cache: "no-store" });
-        if (res3.ok) {
-          const text = (await res3.text()).trim();
-          if (text.startsWith("https://")) return text;
-        }
-      } catch (e) {}
+        try {
+          const res3 = await fetch("./public-url.txt?t=" + Date.now(), { cache: "no-store" });
+          if (res3.ok) {
+            const text = (await res3.text()).trim();
+            if (text.startsWith("https://")) return text;
+          }
+        } catch (e) {}
 
-      return null;
-    }
-
-    async function connectServer() {
-      const statusEl = document.getElementById("statusText");
-      const spinnerEl = document.getElementById("spinner");
-      const manualEl = document.getElementById("manualLink");
-      const retryEl = document.getElementById("retryBtn");
-
-      spinnerEl.style.display = "block";
-      manualEl.style.display = "none";
-      retryEl.style.display = "none";
-      statusEl.textContent = "교회 서버로 자동 연결하고 있습니다...";
-
-      const baseUrl = await fetchLatestUrl();
-      if (!baseUrl) {
-        spinnerEl.style.display = "none";
-        statusEl.textContent = "현재 교회 서버 주소를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
-        retryEl.style.display = "block";
-        return;
+        return null;
       }
 
-      const cleanBase = baseUrl.replace(/\/+$/, "");
-      const subPath = window.location.search + window.location.hash;
-      const targetUrl = cleanBase + "/" + (subPath.startsWith("?") || subPath.startsWith("#") ? subPath : "");
+      async function connectServer() {
+        const errorBox = document.getElementById("errorBox");
+        errorBox.style.display = "none";
 
-      manualEl.href = targetUrl;
-      manualEl.style.display = "block";
-      window.location.replace(targetUrl);
-    }
+        const minSplashDelay = new Promise((r) => setTimeout(r, 650));
+        const [baseUrl] = await Promise.all([fetchLatestUrl(), minSplashDelay]);
 
-    connectServer();
-  </script>
-</body>
+        if (!baseUrl) {
+          errorBox.style.display = "block";
+          return;
+        }
+
+        const cleanBase = baseUrl.replace(/\/+$/, "");
+        const subPath = window.location.search + window.location.hash;
+        const targetUrl = cleanBase + "/" + (subPath.startsWith("?") || subPath.startsWith("#") ? subPath : "");
+
+        window.location.replace(targetUrl);
+      }
+
+      connectServer();
+    </script>
+  </body>
 </html>

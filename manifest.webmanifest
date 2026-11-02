@@ -1,16 +1,22 @@
 {
-  "name": "은혜와진리교회 커뮤니티",
+  "name": "은혜와진리교회",
   "short_name": "은혜와진리교회",
-  "description": "은혜와진리교회 커뮤니티 자동 연결 앱",
+  "description": "은혜와진리교회 성도 커뮤니티",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#25274D",
-  "theme_color": "#25274D",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "icons": [
     {
-      "src": "./icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "./pwa-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]
