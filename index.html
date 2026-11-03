@@ -252,9 +252,11 @@
       const GIST_RAW = "https://gist.githubusercontent.com/dailyplantLabs/" + GIST_ID + "/raw/public-url.txt";
       const LOGGED_OUT_KEY = "cc_gateway_logged_out";
       const CACHED_TUNNEL_KEY = "cc_cached_tunnel_url";
+      const LAST_PATH_KEY = "cc_gateway_last_path";
 
       let liveTunnelUrl = "";
       let frameFallbackTimer = null;
+      let frameInitialized = false;
 
       async function fetchLatestUrl() {
         const params = new URLSearchParams(window.location.search);
@@ -363,10 +365,20 @@
       }
 
       function openCommunityWithToken(targetBase, idToken) {
+        if (frameInitialized && appFrameEl.src && appFrameEl.src !== "about:blank") {
+          revealAppFrame();
+          return;
+        }
+        frameInitialized = true;
+        let savedPath = "/";
+        try {
+          const p = sessionStorage.getItem(LAST_PATH_KEY);
+          if (p && p.startsWith("/")) savedPath = p;
+        } catch (e) {}
         loginEl.style.display = "none";
         splashEl.style.display = "flex";
         appFrameEl.style.display = "block";
-        appFrameEl.src = targetBase + "/#firebase_token=" + encodeURIComponent(idToken);
+        appFrameEl.src = targetBase + savedPath + "#firebase_token=" + encodeURIComponent(idToken);
 
         if (frameFallbackTimer) clearTimeout(frameFallbackTimer);
         frameFallbackTimer = setTimeout(() => {
@@ -390,7 +402,11 @@
 
         if (data.type === "CC_APP_READY") {
           revealAppFrame();
+        } else if (data.type === "CC_ROUTE_CHANGE" && typeof data.path === "string") {
+          try { sessionStorage.setItem(LAST_PATH_KEY, data.path); } catch (e) {}
         } else if (data.type === "CC_LOGOUT") {
+          frameInitialized = false;
+          try { sessionStorage.removeItem(LAST_PATH_KEY); } catch (e) {}
           try { localStorage.setItem(LOGGED_OUT_KEY, "1"); } catch (e) {}
           try { await signOut(auth); } catch (e) {}
           appFrameEl.src = "about:blank";
