@@ -25,15 +25,15 @@
         font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Malgun Gothic", "맑은 고딕", sans-serif;
         -webkit-font-smoothing: antialiased;
       }
-      /* 1단계: 스플래시 화면 (하얀 배경 + 중앙 원형 엠블럼) */
+      /* 1단계: 스플래시 화면 (하얀 배경 + 정중앙 원형 엠블럼 - App.tsx / index.html 과 100% 동일한 좌표) */
       #splashScreen {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
         display: flex;
-        min-height: 100dvh;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
         background-color: #ffffff;
-        padding: 24px;
       }
       .splash-emblem {
         width: 112px;
@@ -41,11 +41,6 @@
         object-fit: contain;
         user-select: none;
         -webkit-user-drag: none;
-        animation: splashFade 0.35s ease-out;
-      }
-      @keyframes splashFade {
-        from { opacity: 0; transform: scale(0.96); }
-        to { opacity: 1; transform: scale(1); }
       }
 
       /* 2단계: 설정된 로그인 화면 (LoginPage.tsx와 100% 동일한 레이아웃/스타일) */
