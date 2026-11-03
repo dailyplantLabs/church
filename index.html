@@ -2,7 +2,7 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="theme-color" content="#ffffff" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -21,12 +21,13 @@
       html, body {
         width: 100%;
         height: 100%;
+        overflow: hidden;
         background-color: #ffffff;
         color: #1c1917;
         font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Malgun Gothic", "맑은 고딕", sans-serif;
         -webkit-font-smoothing: antialiased;
       }
-      /* 1단계: 스플래시 화면 (하얀 배경 + 정중앙 원형 엠블럼 - App.tsx / index.html 과 100% 동일한 좌표) */
+      /* 1단계: 스플래시 화면 (하얀 배경 + 정중앙 원형 엠블럼) */
       #splashScreen {
         position: fixed;
         inset: 0;
@@ -44,8 +45,11 @@
         -webkit-user-drag: none;
       }
 
-      /* 2단계: 설정된 로그인 화면 (LoginPage.tsx와 100% 동일한 레이아웃/스타일) */
+      /* 2단계: 로그인 화면 (첫 로그인 또는 로그아웃 시에만 표시) */
       #loginScreen {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
         display: none;
         margin: 0 auto;
         min-height: 100dvh;
@@ -53,7 +57,8 @@
         flex-direction: column;
         background-color: #ffffff;
         padding: 0 20px;
-        animation: loginFadeIn 0.28s ease-out;
+        overflow-y: auto;
+        animation: loginFadeIn 0.25s ease-out;
       }
       @media (min-width: 640px) {
         #loginScreen {
@@ -152,6 +157,19 @@
         line-height: 1.5;
         color: #b91c1c;
       }
+
+      /* 3단계: 고정 도메인(dailyplantlabs.github.io/church/) 내부에 전체화면으로 렌더링되는 커뮤니티 앱 컨테이너
+         -> 도메인이 바뀌지 않으므로 PWA 상단에 trycloudflare.com 주소창 바가 절대 나타나지 않으며 로그인도 영구 유지됩니다. */
+      #appFrame {
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        display: none;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background-color: #ffffff;
+      }
     </style>
   </head>
   <body>
@@ -160,7 +178,7 @@
       <img src="./logo-emblem.png" alt="은혜와진리교회" class="splash-emblem" draggable="false" />
     </div>
 
-    <!-- 2. 스플래시 직후 전환되는 로그인 화면 (고정 도메인 dailyplantlabs.github.io 에서 직접 실행) -->
+    <!-- 2. 로그인 화면 (이미 로그인된 성도는 자동으로 건너뛰고 바로 홈 화면으로 진입) -->
     <main id="loginScreen">
       <div class="login-inner">
         <img src="./logo-emblem.png" alt="은혜와진리교회 엠블럼" class="login-emblem" draggable="false" />
@@ -198,9 +216,24 @@
       </div>
     </main>
 
+    <!-- 3. 고정 도메인 내부 전체화면 커뮤니티 프레임 -->
+    <iframe
+      id="appFrame"
+      title="은혜와진리교회 커뮤니티"
+      allow="camera; microphone; fullscreen; clipboard-read; clipboard-write; web-share; autoplay"
+    ></iframe>
+
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-      import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+      import {
+        getAuth,
+        GoogleAuthProvider,
+        signInWithPopup,
+        onAuthStateChanged,
+        signOut,
+        setPersistence,
+        browserLocalPersistence
+      } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
       const FIREBASE_CONFIG = {
         apiKey: "AIzaSyBt9MFhWdbZIJxW2O71B8E-nZVylH8kZq8",
@@ -212,18 +245,24 @@
       const app = initializeApp(FIREBASE_CONFIG);
       const auth = getAuth(app);
       auth.languageCode = "ko";
+      setPersistence(auth, browserLocalPersistence).catch(() => {});
 
       const GIST_ID = "504fbba58649ceaaefddc468b28ea259";
       const GIST_API = "https://api.github.com/gists/" + GIST_ID;
       const GIST_RAW = "https://gist.githubusercontent.com/dailyplantLabs/" + GIST_ID + "/raw/public-url.txt";
+      const LOGGED_OUT_KEY = "cc_gateway_logged_out";
+      const CACHED_TUNNEL_KEY = "cc_cached_tunnel_url";
 
       let liveTunnelUrl = "";
+      let frameFallbackTimer = null;
 
       async function fetchLatestUrl() {
         const params = new URLSearchParams(window.location.search);
         const returnTo = params.get("returnTo");
         if (returnTo && returnTo.startsWith("https://")) {
-          return returnTo.replace(/\/+$/, "");
+          const clean = returnTo.replace(/\/+$/, "");
+          try { localStorage.setItem(CACHED_TUNNEL_KEY, clean); } catch (e) {}
+          return clean;
         }
 
         try {
@@ -232,7 +271,11 @@
             const data = await res.json();
             if (data && data.files && data.files["public-url.txt"] && data.files["public-url.txt"].content) {
               const url = data.files["public-url.txt"].content.trim();
-              if (url.startsWith("https://")) return url.replace(/\/+$/, "");
+              if (url.startsWith("https://")) {
+                const clean = url.replace(/\/+$/, "");
+                try { localStorage.setItem(CACHED_TUNNEL_KEY, clean); } catch (e) {}
+                return clean;
+              }
             }
           }
         } catch (e) {}
@@ -241,7 +284,11 @@
           const res2 = await fetch(GIST_RAW + "?t=" + Date.now(), { cache: "no-store" });
           if (res2.ok) {
             const text = (await res2.text()).trim();
-            if (text.startsWith("https://")) return text.replace(/\/+$/, "");
+            if (text.startsWith("https://")) {
+              const clean = text.replace(/\/+$/, "");
+              try { localStorage.setItem(CACHED_TUNNEL_KEY, clean); } catch (e) {}
+              return clean;
+            }
           }
         } catch (e) {}
 
@@ -249,15 +296,41 @@
           const res3 = await fetch("./public-url.txt?t=" + Date.now(), { cache: "no-store" });
           if (res3.ok) {
             const text = (await res3.text()).trim();
-            if (text.startsWith("https://")) return text.replace(/\/+$/, "");
+            if (text.startsWith("https://")) {
+              const clean = text.replace(/\/+$/, "");
+              try { localStorage.setItem(CACHED_TUNNEL_KEY, clean); } catch (e) {}
+              return clean;
+            }
           }
+        } catch (e) {}
+
+        try {
+          const cached = localStorage.getItem(CACHED_TUNNEL_KEY);
+          if (cached && cached.startsWith("https://")) return cached;
         } catch (e) {}
 
         return "";
       }
 
+      function waitForInitialAuthUser() {
+        return new Promise((resolve) => {
+          const unsub = onAuthStateChanged(
+            auth,
+            (user) => {
+              unsub();
+              resolve(user);
+            },
+            () => {
+              unsub();
+              resolve(null);
+            }
+          );
+        });
+      }
+
       const splashEl = document.getElementById("splashScreen");
       const loginEl = document.getElementById("loginScreen");
+      const appFrameEl = document.getElementById("appFrame");
       const btnEl = document.getElementById("googleLoginBtn");
       const btnTextEl = document.getElementById("googleBtnText");
       const errorEl = document.getElementById("errorBox");
@@ -267,14 +340,109 @@
         errorEl.style.display = "block";
       }
 
-      async function initFlow() {
-        // 1단계: 스플래시 화면(원형 마크)을 먼저 보여준 뒤 로그인 화면으로 전환
-        const minSplash = new Promise((r) => setTimeout(r, 850));
-        const [url] = await Promise.all([fetchLatestUrl(), minSplash]);
-        liveTunnelUrl = url;
-
+      function showLoginScreen() {
+        if (frameFallbackTimer) {
+          clearTimeout(frameFallbackTimer);
+          frameFallbackTimer = null;
+        }
+        appFrameEl.style.display = "none";
         splashEl.style.display = "none";
         loginEl.style.display = "flex";
+        btnEl.disabled = false;
+        btnTextEl.textContent = "Google 계정으로 계속하기";
+      }
+
+      function revealAppFrame() {
+        if (frameFallbackTimer) {
+          clearTimeout(frameFallbackTimer);
+          frameFallbackTimer = null;
+        }
+        loginEl.style.display = "none";
+        appFrameEl.style.display = "block";
+        splashEl.style.display = "none";
+      }
+
+      function openCommunityWithToken(targetBase, idToken) {
+        loginEl.style.display = "none";
+        splashEl.style.display = "flex";
+        appFrameEl.style.display = "block";
+        appFrameEl.src = targetBase + "/#firebase_token=" + encodeURIComponent(idToken);
+
+        if (frameFallbackTimer) clearTimeout(frameFallbackTimer);
+        frameFallbackTimer = setTimeout(() => {
+          revealAppFrame();
+        }, 2200);
+      }
+
+      appFrameEl.addEventListener("load", () => {
+        // 프레임 로드 직후 React 마운트 완료 메시지(CC_APP_READY)가 오거나 짧은 딜레이 후 스플래시 해제
+        setTimeout(() => {
+          if (appFrameEl.src && appFrameEl.src !== "about:blank") {
+            revealAppFrame();
+          }
+        }, 350);
+      });
+
+      // 내부 커뮤니티 앱(appFrame)으로부터의 이벤트 수신 (준비 완료 / 로그아웃 / 재인증 요청)
+      window.addEventListener("message", async (event) => {
+        const data = event.data;
+        if (!data || typeof data.type !== "string") return;
+
+        if (data.type === "CC_APP_READY") {
+          revealAppFrame();
+        } else if (data.type === "CC_LOGOUT") {
+          try { localStorage.setItem(LOGGED_OUT_KEY, "1"); } catch (e) {}
+          try { await signOut(auth); } catch (e) {}
+          appFrameEl.src = "about:blank";
+          showLoginScreen();
+        } else if (data.type === "CC_NEED_LOGIN") {
+          const explicitlyLoggedOut = (() => {
+            try { return localStorage.getItem(LOGGED_OUT_KEY) === "1"; } catch (e) { return false; }
+          })();
+          if (!data.forcePrompt && !explicitlyLoggedOut && auth.currentUser) {
+            try {
+              const freshToken = await auth.currentUser.getIdToken(true);
+              if (appFrameEl.contentWindow) {
+                appFrameEl.contentWindow.postMessage({ type: "CC_FIREBASE_TOKEN", idToken: freshToken }, "*");
+                return;
+              }
+            } catch (e) {}
+          }
+          showLoginScreen();
+        }
+      });
+
+      async function initFlow() {
+        const params = new URLSearchParams(window.location.search);
+        const forceLogin = params.get("login") === "1";
+        if (forceLogin) {
+          window.history.replaceState(null, "", window.location.pathname);
+        }
+
+        const minSplash = new Promise((r) => setTimeout(r, 550));
+        const [url, existingUser] = await Promise.all([
+          fetchLatestUrl(),
+          waitForInitialAuthUser(),
+          minSplash
+        ]);
+        liveTunnelUrl = url;
+
+        const explicitlyLoggedOut = (() => {
+          try { return localStorage.getItem(LOGGED_OUT_KEY) === "1"; } catch (e) { return false; }
+        })();
+
+        // 이미 로그인된 성도는 매번 다시 로그인할 필요 없이 자동으로 토큰을 갱신하여 바로 홈 화면으로 진입
+        if (existingUser && !forceLogin && !explicitlyLoggedOut && liveTunnelUrl) {
+          try {
+            const idToken = await existingUser.getIdToken();
+            openCommunityWithToken(liveTunnelUrl, idToken);
+            return;
+          } catch (e) {
+            // 토큰 갱신 실패 시 로그인 화면 표시
+          }
+        }
+
+        showLoginScreen();
       }
 
       btnEl.addEventListener("click", async () => {
@@ -288,17 +456,15 @@
 
           const result = await signInWithPopup(auth, provider);
           const idToken = await result.user.getIdToken();
+          try { localStorage.removeItem(LOGGED_OUT_KEY); } catch (e) {}
 
-          // 로그인 성공 시점의 최신 터널 주소를 다시 한 번 확인
           const targetBase = (await fetchLatestUrl()) || liveTunnelUrl;
           if (!targetBase) {
             throw new Error("현재 교회 서버가 켜져 있지 않거나 연결 주소를 찾을 수 없습니다.");
           }
+          liveTunnelUrl = targetBase;
 
-          // 로그인 완료 후 스플래시 화면으로 부드럽게 전환하며 서버로 토큰 전달
-          loginEl.style.display = "none";
-          splashEl.style.display = "flex";
-          window.location.replace(targetBase + "/#firebase_token=" + encodeURIComponent(idToken));
+          openCommunityWithToken(targetBase, idToken);
         } catch (err) {
           const code = err && err.code ? err.code : "";
           if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
