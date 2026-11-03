@@ -22,6 +22,7 @@
         width: 100%;
         height: 100%;
         overflow: hidden;
+        overscroll-behavior: none;
         background-color: #ffffff;
         color: #1c1917;
         font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Malgun Gothic", "맑은 고딕", sans-serif;
@@ -220,7 +221,7 @@
     <iframe
       id="appFrame"
       title="은혜와진리교회 커뮤니티"
-      allow="camera; microphone; fullscreen; clipboard-read; clipboard-write; web-share; autoplay"
+      allow="camera *; microphone *; fullscreen *; clipboard-read *; clipboard-write *; web-share *; autoplay *"
     ></iframe>
 
     <script type="module">
@@ -372,7 +373,7 @@
         frameInitialized = true;
         let savedPath = "/";
         try {
-          const p = sessionStorage.getItem(LAST_PATH_KEY);
+          const p = sessionStorage.getItem(LAST_PATH_KEY) || localStorage.getItem(LAST_PATH_KEY);
           if (p && p.startsWith("/")) savedPath = p;
         } catch (e) {}
         loginEl.style.display = "none";
@@ -404,9 +405,11 @@
           revealAppFrame();
         } else if (data.type === "CC_ROUTE_CHANGE" && typeof data.path === "string") {
           try { sessionStorage.setItem(LAST_PATH_KEY, data.path); } catch (e) {}
+          try { localStorage.setItem(LAST_PATH_KEY, data.path); } catch (e) {}
         } else if (data.type === "CC_LOGOUT") {
           frameInitialized = false;
           try { sessionStorage.removeItem(LAST_PATH_KEY); } catch (e) {}
+          try { localStorage.removeItem(LAST_PATH_KEY); } catch (e) {}
           try { localStorage.setItem(LOGGED_OUT_KEY, "1"); } catch (e) {}
           try { await signOut(auth); } catch (e) {}
           appFrameEl.src = "about:blank";
